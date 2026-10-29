@@ -1,0 +1,19 @@
+# reverser's intermediate artefacts (reproduce with jadx / unzip)
+app.apk
+unzip/
+jadx_out/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# MSVC build leftovers (ds_pow.dll itself IS tracked)
+*.obj
+*.exp
+*.lib
+
+# logs
+*.log
+demo.out.log
+demo.err.log

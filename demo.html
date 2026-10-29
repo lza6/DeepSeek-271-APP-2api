@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DeepSeek APK v2.7.1 逆向演示</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121821; --panel2:#182231; --line:#243247;
+    --fg:#d7e3f4; --dim:#7d90a8; --acc:#4ea1ff; --ok:#38d39f; --warn:#ffb454; --err:#ff5d6c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 15% -10%,#123 0%,var(--bg) 55%);
+       color:var(--fg);font:14px/1.6 "Segoe UI",Roboto,"Microsoft YaHei",sans-serif}
+  header{padding:22px 26px 12px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:19px;letter-spacing:.4px}
+  h1 span{color:var(--acc)}
+  .sub{color:var(--dim);font-size:12.5px;margin-top:5px}
+  main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 26px 40px;max-width:1400px}
+  @media(max-width:1000px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card h2{margin:0 0 10px;font-size:14px;color:var(--acc);font-weight:600;letter-spacing:.3px}
+  .card.wide{grid-column:1/-1}
+  label{display:block;color:var(--dim);font-size:12px;margin:8px 0 3px}
+  input,select,textarea{width:100%;background:var(--panel2);color:var(--fg);border:1px solid var(--line);
+       border-radius:8px;padding:8px 10px;font:13px/1.5 ui-monospace,Consolas,monospace}
+  textarea{resize:vertical}
+  button{background:linear-gradient(180deg,#1d4e8a,#17385f);color:#eaf3ff;border:1px solid #2a5c96;
+       border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;margin:10px 8px 0 0}
+  button:hover{filter:brightness(1.15)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:var(--panel2);border-color:var(--line);color:var(--dim)}
+  pre{margin:10px 0 0;background:#0a0e13;border:1px solid var(--line);border-radius:8px;padding:12px;
+      max-height:280px;overflow:auto;font:12px/1.55 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-all}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:4px 12px;font-size:12.5px}
+  .kv b{color:var(--dim);font-weight:500}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;border:1px solid var(--line)}
+  .ok{color:var(--ok);border-color:#1d6b52;background:#0f2b23}
+  .err{color:var(--err);border-color:#7a2833;background:#2a1216}
+  .warn{color:var(--warn);border-color:#6f5220;background:#2a2211}
+  table{width:100%;border-collapse:collapse;font-size:12.3px}
+  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:500}
+  td.mono{font-family:ui-monospace,Consolas,monospace;color:#a9c7ea}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  #gauge{height:6px;background:#0a0e13;border-radius:99px;overflow:hidden;margin-top:8px}
+  #gauge>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4ea1ff,#38d39f);transition:width .25s}
+</style>
+</head>
+<body>
+<header>
+  <h1>DeepSeek Android <span>v2.7.1 (vc288)</span> · 协议逆向演示台</h1>
+  <div class="sub">
+    包名 com.deepseek.chat · arm64-v8a · DeepSeekHashV1 PoW（23 轮 keccak-f1600）·
+    上游 chat.deepseek.com（HWWAF）· 本页所有请求都是真实上游请求，不含任何 mock
+  </div>
+</header>
+
+<main>
+  <!-- 1 PoW -->
+  <section class="card">
+    <h2>① Guest PoW 全链路（真实上游）</h2>
+    <div class="kv" id="powinfo">
+      <b>状态</b><span id="p-state"><span class="pill">待运行</span></span>
+      <b>challenge</b><span id="p-ch" class="mono">—</span>
+      <b>salt / expire</b><span id="p-salt" class="mono">—</span>
+      <b>difficulty</b><span id="p-diff">—</span>
+      <b>nonce</b><span id="p-nonce">—</span>
+      <b>求解耗时</b><span id="p-time">—</span>
+      <b>header 值</b><span id="p-hdr" class="mono" style="font-size:11px">—</span>
+    </div>
+    <label>target_path</label>
+    <select id="p-path">
+      <option>/api/v0/users/register</option>
+      <option>/api/v0/users/register_by_mobile</option>
+      <option>/api/v0/users/create_sms_verification_code</option>
+      <option>/api/v0/users/create_email_verification_code</option>
+      <option>/api/v0/users/oauth/google/login</option>
+      <option>/api/v0/chat/completion</option>
+    </select>
+    <button id="btn-pow">拉 challenge 并求解</button>
+    <button class="ghost" id="btn-wl">探测服务端白名单</button>
+    <div id="gauge"><i id="gauge-bar"></i></div>
+    <pre id="p-log">点击按钮开始。难点在于 DeepSeekHashV1 不是标准 SHA3：它把 perm 压到 23 轮并且 digest 直接对齐 challenge 字节。</pre>
+  </section>
+
+  <!-- 2 账号 -->
+  <section class="card">
+    <h2>② 登录（无需 PoW / 无需人机验证）</h2>
+    <label>邮箱</label>
+    <input id="l-email" placeholder="you@example.com" autocomplete="off"/>
+    <label>密码</label>
+    <input id="l-pass" type="password" placeholder="••••••••" autocomplete="off"/>
+    <button id="btn-login">POST /api/v0/users/login</button>
+    <button class="ghost" id="btn-wholist">看注册通道封锁证据</button>
+    <pre id="l-log">只有 /api/v0/users/login 不设防：注册、邮箱/短信验证码、Google 登录全部要 guest PoW，且最终卡 hCaptcha/数美（RECAPTCHA_VERIFY_FAILED）。</pre>
+  </section>
+
+  <!-- 3 端点表 -->
+  <section class="card wide">
+    <h2>③ 攻击面（57 个端点 / 10 个"需鉴权 PoW"路径）</h2>
+    <table id="ep-table">
+      <thead><tr><th style="width:34%">端点</th><th style="width:26%">鉴权</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">/api/v0/users/login</td><td><span class="pill ok">账密直通</span></td><td>无 PoW、无人机验证 → 唯一可行入口</td></tr>
+        <tr><td class="mono">/api/v0/users/create_guest_challenge</td><td><span class="pill">guest PoW</span></td><td>返回 DeepSeekHashV1 challenge（difficulty 160000）</td></tr>
+        <tr><td class="mono">/api/v0/users/create_email_verification_code</td><td><span class="pill warn">PoW + 人机</span></td><td>scenario∈{register,reset_password}，末端 RECAPTCHA_VERIFY_FAILED</td></tr>
+        <tr><td class="mono">/api/v0/users/create_sms_verification_code</td><td><span class="pill warn">PoW + 人机</span></td><td>同上，短信侧被数美封锁</td></tr>
+        <tr><td class="mono">/api/v0/chat/create_pow_challenge</td><td><span class="pill err">token</span></td><td>v2.7.1 新增：登录后聊天也要 PoW</td></tr>
+        <tr><td class="mono">/api/v0/chat/completion</td><td><span class="pill err">token + PoW</span></td><td>SSE 主链路，10 字段 DTO</td></tr>
+        <tr><td class="mono">/api/v0/chat_session/create</td><td><span class="pill err">token</span></td><td>建会话拿 chat_session_id</td></tr>
+        <tr><td class="mono">/api/v0/chat/tts/* · /api/v0/call/* · /api/v0/index/*</td><td><span class="pill err">token</span></td><td>v2.7.x 新增：语音合成、实时通话、RAG 索引</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4 聊天 -->
+  <section class="card wide">
+    <h2>④ 聊天 SSE（需要真账号 token）</h2>
+    <div class="row">
+      <div style="flex:2">
+        <label>x-auth-token（来自 ② 或你自己账号）</label>
+        <input id="c-token" placeholder="登录后自动填充"/>
+      </div>
+      <div>
+        <label>model_type</label>
+        <select id="c-model">
+          <option value="default">default（V3 快问快答）</option>
+          <option value="expert">expert（推理/思考）</option>
+          <option value="vision">vision</option>
+        </select>
+      </div>
+    </div>
+    <label>prompt</label>
+    <textarea id="c-prompt" rows="3">用三句话说明 DeepSeekHashV1 与 SHA3-256 的差别</textarea>
+    <div class="row">
+      <div><label><input type="checkbox" id="c-think"/> thinking_enabled</label></div>
+      <div><label><input type="checkbox" id="c-search"/> search_enabled</label></div>
+    </div>
+    <button id="btn-chat">建会话 + 解 PoW + 流式聊天</button>
+    <pre id="c-log">未填 token 时这里会返回上游的 40002 Missing Token —— 这也是"注册封锁"的直接后果。</pre>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const log = (el, s) => { el.textContent += (el.textContent ? "\n" : "") + s; el.scrollTop = el.scrollHeight; };
+const pill = (cls, txt) => `<span class="pill ${cls}">${txt}</span>`;
+
+// ① PoW
+$('btn-pow').onclick = async () => {
+  const btn = $('btn-pow'); btn.disabled = true;
+  $('p-log').textContent = ''; $('gauge-bar').style.width = '15%';
+  const path = $('p-path').value;
+  try {
+    log($('p-log'), `→ GET /api/pow/challenge?target_path=${path}`);
+    const t0 = performance.now();
+    const r = await fetch('/api/pow/challenge?target_path=' + encodeURIComponent(path));
+    const j = await r.json();
+    if (!r.ok) { $('p-state').innerHTML = pill('err','被拒绝'); log($('p-log'), '✗ ' + JSON.stringify(j.detail)); return; }
+    const ch = j.challenge;
+    $('p-ch').textContent = ch.challenge.slice(0, 32) + '…';
+    $('p-salt').textContent = ch.salt + ' / ' + ch.expire_at;
+    $('p-diff').textContent = ch.difficulty;
+    log($('p-log'), `   ${j.fetch_ms} ms  difficulty=${ch.difficulty} algorithm=${ch.algorithm}`);
+    $('gauge-bar').style.width = '45%';
+    log($('p-log'), `→ POST /api/pow/solve  (搜索 nonce ∈ [0, ${ch.difficulty}) )`);
+    const r2 = await fetch('/api/pow/solve', {method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({challenge:ch.challenge, salt:ch.salt, expire_at:ch.expire_at, difficulty:ch.difficulty})});
+    const s2 = await r2.json();
+    $('gauge-bar').style.width = '100%';
+    if (!r2.ok) { $('p-state').innerHTML = pill('err','求解失败'); log($('p-log'), '✗ ' + JSON.stringify(s2.detail)); return; }
+    $('p-nonce').textContent = s2.nonce;
+    $('p-time').textContent = s2.seconds + ' s（含 HTTP 往返 ' + ((performance.now()-t0)/1000).toFixed(2) + ' s）';
+    $('p-hdr').textContent = s2.header_name + ': ' + s2.header_value;
+    $('p-state').innerHTML = pill('ok','求解成功');
+    log($('p-log'), `   nonce=${s2.nonce}  用时 ${s2.seconds}s`);
+    log($('p-log'), `   digest 逐字节等于 challenge → header = base64({"salt","answer"})`);
+  } catch (e) { $('p-state').innerHTML = pill('err','异常'); log($('p-log'), '✗ ' + e); }
+  finally { btn.disabled = false; }
+};
+
+$('btn-wl').onclick = async () => {
+  log($('p-log'), '\n→ 探测服务端白名单…');
+  const r = await fetch('/api/pow/whitelist'); const j = await r.json();
+  for (const [p, v] of Object.entries(j.server))
+    log($('p-log'), `   ${v.allowed ? '✓ 允许' : '✗ 拒绝'}  ${p}${v.allowed ? '  difficulty=' + v.difficulty : '  ' + v.biz_msg}`);
+};
+
+// ② 登录
+$('btn-login').onclick = async () => {
+  $('l-log').textContent = '';
+  const body = {email: $('l-email').value.trim(), password: $('l-pass').value};
+  log($('l-log'), '→ POST /api/v0/users/login');
+  const r = await fetch('/api/login', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if (!r.ok) { log($('l-log'), '✗ ' + JSON.stringify(j.detail)); return; }
+  $('c-token').value = j.token;
+  log($('l-log'), '✓ 登录成功。token 前 16 位: ' + j.token.slice(0,16) + '…');
+};
+$('btn-wholist').onclick = async () => {
+  $('l-log').textContent = '';
+  log($('l-log'), '→ 对每个注册类端点申请 challenge 并试探末端');
+  const r = await fetch('/api/pow/whitelist'); const j = await r.json();
+  log($('l-log'), '客户端硬编码白名单: ' + j.client_whitelist.length + ' 条');
+  log($('l-log'), '· register / register_by_mobile / create_*_verification_code / oauth/google/login 均需 guest PoW');
+  log($('l-log'), '· 即便 PoW 通过（已验证 nonce 被接受），业务层仍返回 RECAPTCHA_VERIFY_FAILED → 需 hCaptcha/数美真机 token');
+  log($('l-log'), '· login 不在白名单里，因为它根本不需要 PoW');
+};
+
+// ④ 聊天
+$('btn-chat').onclick = async () => {
+  const logEl = $('c-log'); logEl.textContent = '';
+  const body = {token: $('c-token').value.trim(), prompt: $('c-prompt').value,
+    thinking_enabled: $('c-think').checked, search_enabled: $('c-search').checked,
+    model_type: $('c-model').value};
+  if (!body.token) { log(logEl, '✗ 先登录或粘贴 token'); return; }
+  log(logEl, '→ 建会话 + 取 authed PoW + POST /api/v0/chat/completion');
+  const r = await fetch('/api/chat', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body)});
+  if (!r.ok) { log(logEl, '✗ ' + (await r.text())); return; }
+  const rd = r.body.getReader(); const dec = new TextDecoder();
+  while (true) {
+    const {done, value} = await rd.read(); if (done) break;
+    log(logEl, dec.decode(value, {stream:true}));
+  }
+  log(logEl, '✓ 流结束');
+};
+
+fetch('/health').then(r=>r.json()).then(j=>{
+  document.querySelector('.sub').insertAdjacentHTML('beforeend',
+    `<br/>服务状态: ${j.ok?'在线':'离线'} · 上游 warm-up: ${j.upstream_ok?'<span style="color:#38d39f">通过</span>':'<span style="color:#ff5d6c">失败</span>'}`);
+});
+</script>
+</body>
+</html>

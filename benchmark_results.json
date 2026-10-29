@@ -1,0 +1,215 @@
+{
+  "ts": "2026-10-29T23:03:36",
+  "sections": {
+    "1. warm-up + latency of challenge fetch": {
+      "latency_ms": {
+        "n": 30,
+        "mean": 61.61,
+        "p50": 56.48,
+        "p90": 62.39,
+        "p99": 187.9,
+        "max": 187.9
+      },
+      "errors": 0,
+      "difficulty_sample": 160000,
+      "elapsed_s": 2.0
+    },
+    "2. PoW solve throughput (local CPU engine)": {
+      "engine": "c",
+      "solve_seconds": {
+        "n": 8,
+        "mean": 0.02,
+        "p50": 0.02,
+        "p90": 0.02,
+        "p99": 0.02,
+        "max": 0.02
+      },
+      "difficulty": 160000,
+      "hash_rate_hash_per_s": 7694841,
+      "bench_workers": 8,
+      "samples_nonce": [
+        283,
+        283,
+        283,
+        283,
+        283,
+        283,
+        283,
+        283
+      ],
+      "elapsed_s": 0.5
+    },
+    "3. concurrent challenge fetch (WAF behaviour under load)": {
+      "c1": {
+        "requests": 20,
+        "wall_s": 1.53,
+        "qps": 13.07,
+        "latency_ms": {
+          "n": 20,
+          "mean": 76.41,
+          "p50": 65.14,
+          "p90": 117.6,
+          "p99": 186.26,
+          "max": 186.26
+        },
+        "outcomes": {
+          "ok": 20
+        }
+      },
+      "c5": {
+        "requests": 20,
+        "wall_s": 0.39,
+        "qps": 51.88,
+        "latency_ms": {
+          "n": 20,
+          "mean": 92.13,
+          "p50": 68.06,
+          "p90": 195.85,
+          "p99": 198.44,
+          "max": 198.44
+        },
+        "outcomes": {
+          "ok": 20
+        }
+      },
+      "c10": {
+        "requests": 20,
+        "wall_s": 0.43,
+        "qps": 46.95,
+        "latency_ms": {
+          "n": 20,
+          "mean": 130.01,
+          "p50": 160.79,
+          "p90": 219.25,
+          "p99": 229.5,
+          "max": 229.5
+        },
+        "outcomes": {
+          "ok": 20
+        }
+      },
+      "c20": {
+        "requests": 20,
+        "wall_s": 0.39,
+        "qps": 51.3,
+        "latency_ms": {
+          "n": 20,
+          "mean": 190.61,
+          "p50": 179.86,
+          "p90": 210.1,
+          "p99": 370.14,
+          "max": 370.14
+        },
+        "outcomes": {
+          "ok": 20
+        }
+      },
+      "elapsed_s": 3.4
+    },
+    "4. auth surface reachability (no credential used)": {
+      "login": {
+        "reachable": true,
+        "biz_msg": "PASSWORD_OR_USER_NAME_IS_WRONG",
+        "ms": 152.6
+      },
+      "chat_completion_no_token": {
+        "status": 429,
+        "body": "<!DOCTYPE html>\n<html lang=\"en\">\n\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-widt",
+        "ms": 554.6
+      },
+      "create_pow_challenge_no_token": {
+        "status": 200,
+        "body": "{\"code\":40002,\"msg\":\"Missing Token\",\"data\":null}",
+        "ms": 64.2
+      },
+      "elapsed_s": 0.9
+    },
+    "5. registration channel = PoW pass but captcha wall": {
+      "pow_solve_s": 0.0,
+      "pow_accepted": true,
+      "status": 200,
+      "biz_msg": "RECAPTCHA_VERIFY_FAILED",
+      "ms": 172.5,
+      "elapsed_s": 0.4
+    },
+    "6. end-to-end guest PoW round trip": {
+      "rows": [
+        {
+          "challenge_ms": 130.0,
+          "solve_ms": 17.2,
+          "submit_ms": 62.8,
+          "total_ms": 210.1,
+          "verdict": null
+        },
+        {
+          "challenge_ms": 61.2,
+          "solve_ms": 20.1,
+          "submit_ms": 61.5,
+          "total_ms": 142.8,
+          "verdict": null
+        },
+        {
+          "challenge_ms": 63.4,
+          "solve_ms": 27.8,
+          "submit_ms": 77.7,
+          "total_ms": 169.0,
+          "verdict": null
+        },
+        {
+          "challenge_ms": 61.3,
+          "solve_ms": 40.1,
+          "submit_ms": 72.3,
+          "total_ms": 173.7,
+          "verdict": null
+        },
+        {
+          "challenge_ms": 59.8,
+          "solve_ms": 45.6,
+          "submit_ms": 62.7,
+          "total_ms": 168.1,
+          "verdict": null
+        },
+        {
+          "challenge_ms": 59.0,
+          "solve_ms": 29.6,
+          "submit_ms": 63.5,
+          "total_ms": 152.1,
+          "verdict": null
+        }
+      ],
+      "challenge_ms": {
+        "n": 6,
+        "mean": 72.45,
+        "p50": 61.3,
+        "p90": 130.0,
+        "p99": 130.0,
+        "max": 130.0
+      },
+      "solve_ms": {
+        "n": 6,
+        "mean": 30.07,
+        "p50": 29.6,
+        "p90": 45.6,
+        "p99": 45.6,
+        "max": 45.6
+      },
+      "submit_ms": {
+        "n": 6,
+        "mean": 66.75,
+        "p50": 63.5,
+        "p90": 77.7,
+        "p99": 77.7,
+        "max": 77.7
+      },
+      "total_ms": {
+        "n": 6,
+        "mean": 169.3,
+        "p50": 169.0,
+        "p90": 210.1,
+        "p99": 210.1,
+        "max": 210.1
+      },
+      "elapsed_s": 1.2
+    }
+  }
+}

@@ -1,0 +1,8 @@
+# runtime
+curl_cffi>=0.7          # browser TLS fingerprint - REQUIRED, plain requests is blocked by the WAF
+numpy>=1.26             # fallback PoW engine
+fastapi>=0.110          # demo gateway
+uvicorn>=0.27           # ASGI server
+
+# optional (browser verification of demo.html)
+#   pip install playwright && playwright install chromium
